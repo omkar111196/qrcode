@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coupon Verification</title>
+</head>
+<body>
+    <h1>Coupon Status</h1>
+    <div id="coupon-details">
+        <!-- Coupon details will be loaded here -->
+    </div>
+
+    <!-- Verify button -->
+    <button id="verify-btn" style="display:none;">Mark as Verified</button>
+
+    <!-- Password modal -->
+    <div id="password-modal" style="display:none;">
+        <label for="employee-pin">Employee PIN:</label>
+        <input type="password" id="employee-pin">
+        <button id="verify-pin-btn">Submit PIN</button>
+        <p id="pin-error" style="color: red; display: none;">Incorrect PIN!</p>
+    </div>
+
+    <!-- User details form (hidden initially) -->
+    <div id="user-details" style="display:none;">
+        <h3>Enter User Details:</h3>
+        <label for="name">Name:</label>
+        <input type="text" id="name"><br>
+
+        <label for="gender">Gender:</label>
+        <select id="gender">
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+        </select><br>
+
+        <label for="phone">Phone:</label>
+        <input type="text" id="phone"><br>
+
+        <button id="submit-btn">Submit</button>
+    </div>
+
+    <script>
+        const employeePin = "omkar1234";  // Default employee PIN
+
+        // Get the coupon ID from the URL
+        const couponId = window.location.pathname.split('/').pop();
+        const apiUrl = `/coupon/${couponId}`;
+
+        // Fetch the coupon details
+        fetch(apiUrl)
+            .then(response => response.json())
+            .then(data => {
+                const couponDetailsDiv = document.getElementById('coupon-details');
+                if (data.message === "Coupon already used") {
+                    couponDetailsDiv.innerHTML = `<p>Coupon Code: ${data.coupon_code}</p><p>Used on: ${data.used_on}</p>`;
+                } else {
+                    couponDetailsDiv.innerHTML = `<p>Coupon Code: ${data.coupon_code}</p><p>Expiry Date: ${data.expiry_date}</p>`;
+                    document.getElementById('verify-btn').style.display = 'block';
+                }
+            });
+
+        // Show the employee PIN modal when verify button is clicked
+        document.getElementById('verify-btn').addEventListener('click', () => {
+            document.getElementById('password-modal').style.display = 'block';
+        });
+
+        // Verify the employee PIN
+        document.getElementById('verify-pin-btn').addEventListener('click', () => {
+            const enteredPin = document.getElementById('employee-pin').value;
+            if (enteredPin === employeePin) {
+                // PIN is correct, proceed to verify the coupon
+                fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ verify: true })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message === "Coupon verified") {
+                        // Hide password modal and show user details form
+                        document.getElementById('password-modal').style.display = 'none';
+                        document.getElementById('user-details').style.display = 'block';
+                    }
+                });
+            } else {
+                document.getElementById('pin-error').style.display = 'block';
+            }
+        });
+
+        // Submit the user details after the coupon is verified
+        document.getElementById('submit-btn').addEventListener('click', () => {
+            const userName = document.getElementById('name').value;
+            const userGender = document.getElementById('gender').value;
+            const userPhone = document.getElementById('phone').value;
+
+            const data = {
+                name: userName,
+                gender: userGender,
+                phone: userPhone
+            };
+
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+                        .then(response => response.json())
+            .then(data => {
+                alert("User details saved successfully for coupon: " + data.coupon_code);
+                // Optionally, redirect or show a success message
+            });
+        });
+    </script>
+</body>
+</html>
+
